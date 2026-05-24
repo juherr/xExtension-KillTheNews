@@ -1,53 +1,22 @@
-.ktn-panel {
-	border: 1px solid var(--separator, #ccc);
-	border-radius: 6px;
-	padding: 1rem;
-	margin: 0 0 1.5rem 0;
-}
-.ktn-panel h2 {
-	margin-top: 0;
-	font-size: 1.1em;
-}
-.ktn-panel .ktn-help {
-	opacity: 0.8;
-	margin: 0.25rem 0 0.75rem 0;
-}
-.ktn-row {
-	display: flex;
-	gap: 0.5rem;
-	flex-wrap: wrap;
-	align-items: center;
-}
-.ktn-label {
-	flex: 1 0 100%;
-	font-weight: bold;
-}
-.ktn-row input[type="text"] {
-	flex: 1 1 16rem;
-}
 .ktn-result {
 	margin-top: 0.75rem;
 	padding: 0.75rem;
 	border-radius: 6px;
 	background: var(--main-bg-alt, #f3f3f3);
 }
-.ktn-email {
-	display: inline-flex;
-	gap: 0.5rem;
-	align-items: center;
-	font-weight: bold;
-	word-break: break-all;
-}
 .ktn-error {
 	color: var(--error-color, #b00020);
 	margin-top: 0.5rem;
 }
-.ktn-existing {
-	margin-top: 0.75rem;
+.ktn-feed-email input,
+.ktn-source input[readonly] {
+	word-break: break-all;
 }
-.ktn-existing ul {
-	margin: 0.25rem 0 0 0;
-	padding-left: 1.2rem;
+.ktn-url-generated {
+	display: none;
+}
+.ktn-feed-url-input {
+	margin-top: 0.5rem;
 }
 .ktn-hidden {
 	display: none;

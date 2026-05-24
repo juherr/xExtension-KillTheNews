@@ -3,6 +3,10 @@
 declare(strict_types=1);
 
 final class FreshExtension_killthenews_Controller extends Minz_ActionController {
+	private function feedAdminUrl(KillTheNewsExtension $ext, string $feedId): string {
+		return rtrim($ext->getInstanceUrl(), '/') . '/admin/feeds/' . rawurlencode($feedId) . '/edit';
+	}
+
 	private function fail(int $status, string $message): void {
 		http_response_code($status);
 		$this->view->ktnResponse = ['error' => $message];
@@ -51,24 +55,42 @@ final class FreshExtension_killthenews_Controller extends Minz_ActionController 
 			return;
 		}
 
-		try {
-			FreshRSS_feed_Controller::addFeed($feed['feedUrl'], $title, 0, _t('ext.kill_the_news.category_name'));
-		} catch (FreshRSS_AlreadySubscribed_Exception $e) {
-			// Feed already present in FreshRSS: still return the address, it is valid.
-		} catch (\Throwable $e) {
-			$this->logFailure('FreshRSS subscription failed', $e);
-			http_response_code(502);
-			$this->view->ktnResponse = [
-				'error' => _t('ext.kill_the_news.error_subscription_failed'),
-				'emailAddress' => $feed['emailAddress'],
-				'feedUrl' => $feed['feedUrl'],
-			];
-			return;
+		if (Minz_Request::paramString('subscribe') !== '0') {
+			try {
+				FreshRSS_feed_Controller::addFeed(
+					$feed['feedUrl'],
+					$title,
+					0,
+					_t('ext.kill_the_news.category_name'),
+					'',
+					[
+						'kill_the_news' => [
+							'id' => $feed['id'],
+							'emailAddress' => $feed['emailAddress'],
+							'adminUrl' => $this->feedAdminUrl($ext, $feed['id']),
+						],
+					],
+				);
+			} catch (FreshRSS_AlreadySubscribed_Exception $e) {
+				// Feed already present in FreshRSS: still return the address, it is valid.
+			} catch (\Throwable $e) {
+				$this->logFailure('FreshRSS subscription failed', $e);
+				http_response_code(502);
+				$this->view->ktnResponse = [
+					'error' => _t('ext.kill_the_news.error_subscription_failed'),
+					'emailAddress' => $feed['emailAddress'],
+					'feedUrl' => $feed['feedUrl'],
+					'adminUrl' => $this->feedAdminUrl($ext, $feed['id']),
+				];
+				return;
+			}
 		}
 
 		$this->view->ktnResponse = [
+			'id' => $feed['id'],
 			'emailAddress' => $feed['emailAddress'],
 			'feedUrl' => $feed['feedUrl'],
+			'adminUrl' => $this->feedAdminUrl($ext, $feed['id']),
 			'title' => $feed['title'],
 		];
 	}
@@ -96,10 +118,12 @@ final class FreshExtension_killthenews_Controller extends Minz_ActionController 
 			$this->fail(502, _t('ext.kill_the_news.error_upstream'));
 			return;
 		}
-		$this->view->ktnResponse = ['feeds' => array_map(static fn (array $f): array => [
+		$this->view->ktnResponse = ['feeds' => array_map(fn (array $f): array => [
+			'id' => $f['id'],
 			'title' => $f['title'],
 			'emailAddress' => $f['emailAddress'],
 			'feedUrl' => $f['feedUrl'],
+			'adminUrl' => $this->feedAdminUrl($ext, $f['id']),
 		], $feeds)];
 	}
 }

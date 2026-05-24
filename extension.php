@@ -25,6 +25,7 @@ final class KillTheNewsExtension extends Minz_Extension {
 			// defer=true, async=false so window.context (set by main.js) is ready.
 			Minz_View::appendScript($this->getFileUrl('kill-the-news.js'), false, true, false);
 			$this->registerHook(Minz_HookType::JsVars, [$this, 'jsVars']);
+			$this->registerHook(Minz_HookType::FeedBeforeInsert, [$this, 'feedBeforeInsert']);
 		}
 	}
 
@@ -48,6 +49,58 @@ final class KillTheNewsExtension extends Minz_Extension {
 		return KillTheNewsClient::withCurl($this->getInstanceUrl(), $this->getApiToken(), $this->getVerifyTls());
 	}
 
+	public function feedBeforeInsert(FreshRSS_Feed $feed): FreshRSS_Feed {
+		if (Minz_Request::paramString('ktn_source') !== '1') {
+			return $feed;
+		}
+		$id = trim(Minz_Request::paramString('ktn_feed_id'));
+		$email = trim(Minz_Request::paramString('ktn_email_address'));
+		$adminUrl = trim(Minz_Request::paramString('ktn_admin_url'));
+		if ($id === '' || $email === '') {
+			return $feed;
+		}
+		$feed->_attribute('kill_the_news', array_filter([
+			'id' => $id,
+			'emailAddress' => $email,
+			'adminUrl' => $adminUrl !== '' ? $adminUrl : null,
+		]));
+		return $feed;
+	}
+
+	/** @return array{id:string,emailAddress:string,adminUrl?:string}|null */
+	private function currentFeedMetadata(): ?array {
+		$id = Minz_Request::paramInt('id');
+		if ($id <= 0) {
+			return null;
+		}
+		try {
+			$feed = FreshRSS_Factory::createFeedDao()->searchById($id);
+		} catch (\Throwable) {
+			return null;
+		}
+		if ($feed === null) {
+			return null;
+		}
+		$metadata = $feed->attributeArray('kill_the_news');
+		if ($metadata === null) {
+			return null;
+		}
+		$feedId = $metadata['id'] ?? null;
+		$email = $metadata['emailAddress'] ?? null;
+		$adminUrl = $metadata['adminUrl'] ?? null;
+		if (!is_string($feedId) || !is_string($email) || $feedId === '' || $email === '') {
+			return null;
+		}
+		$result = [
+			'id' => $feedId,
+			'emailAddress' => $email,
+		];
+		if (is_string($adminUrl) && $adminUrl !== '') {
+			$result['adminUrl'] = $adminUrl;
+		}
+		return $result;
+	}
+
 	/**
 	 * @param array<string,mixed> $vars
 	 * @return array<string,mixed>
@@ -56,18 +109,22 @@ final class KillTheNewsExtension extends Minz_Extension {
 		$vars[self::ROUTE] = [
 			'createUrl' => Minz_Url::display(['c' => self::ROUTE, 'a' => 'create'], 'php'),
 			'listUrl' => Minz_Url::display(['c' => self::ROUTE, 'a' => 'list'], 'php'),
+			'currentFeed' => $this->currentFeedMetadata(),
 			'i18n' => [
-				'panel_title' => _t('ext.kill_the_news.panel_title'),
 				'panel_help' => _t('ext.kill_the_news.panel_help'),
+				'source_type' => _t('ext.kill_the_news.source_type'),
 				'name_label' => _t('ext.kill_the_news.name_label'),
 				'name_placeholder' => _t('ext.kill_the_news.name_placeholder'),
+				'email_label' => _t('ext.kill_the_news.email_label'),
+				'feed_url_label' => _t('ext.kill_the_news.feed_url_label'),
 				'create_button' => _t('ext.kill_the_news.create_button'),
 				'creating' => _t('ext.kill_the_news.creating'),
 				'created_intro' => _t('ext.kill_the_news.created_intro'),
+				'created_help' => _t('ext.kill_the_news.created_help'),
 				'copy_button' => _t('ext.kill_the_news.copy_button'),
 				'copied' => _t('ext.kill_the_news.copied'),
-				'open_feed' => _t('ext.kill_the_news.open_feed'),
-				'existing_title' => _t('ext.kill_the_news.existing_title'),
+				'manage_feed' => _t('ext.kill_the_news.manage_feed'),
+				'category_name' => _t('ext.kill_the_news.category_name'),
 				'error_generic' => _t('ext.kill_the_news.error_generic'),
 				'error_title_required' => _t('ext.kill_the_news.error_title_required'),
 			],
