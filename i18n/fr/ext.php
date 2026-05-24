@@ -1,0 +1,30 @@
+<?php
+
+return array(
+	'kill_the_news' => array(
+		'config_title' => 'Instance kill-the-news',
+		'instance_url' => 'URL de l’instance',
+		'instance_url_help' => 'URL de base de votre instance kill-the-news, ex. https://news.example.com',
+		'api_token' => 'Jeton d’API',
+		'api_token_help' => 'Le mot de passe administrateur de votre instance, utilisé comme jeton Bearer.',
+		'verify_tls' => 'Vérifier le certificat TLS',
+		'test_button' => 'Tester la connexion',
+		'test_ok' => 'Connexion réussie.',
+		'test_failed' => 'Échec de la connexion : %s',
+		'not_configured' => 'Configurez d’abord votre instance kill-the-news dans les réglages de l’extension.',
+		'panel_title' => 'Recevoir une newsletter par email',
+		'panel_help' => 'Créez une adresse dédiée ; les emails reçus apparaissent comme un flux.',
+		'name_label' => 'Nom de la newsletter',
+		'name_placeholder' => 'ex. Veille Tech quotidienne',
+		'create_button' => 'Créer la newsletter',
+		'creating' => 'Création…',
+		'created_intro' => 'Abonnez-vous à la newsletter avec cette adresse :',
+		'copy_button' => 'Copier',
+		'copied' => 'Copié !',
+		'open_feed' => 'Ouvrir le flux',
+		'existing_title' => 'Vos adresses de newsletters',
+		'error_generic' => 'Une erreur est survenue. Veuillez réessayer.',
+		'error_csrf' => 'Session invalide ou expirée. Rechargez la page et réessayez.',
+		'error_title_required' => 'Veuillez saisir un nom de newsletter.',
+	),
+);

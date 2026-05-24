@@ -1,0 +1,30 @@
+<?php
+
+return array(
+	'kill_the_news' => array(
+		'config_title' => 'kill-the-news instance',
+		'instance_url' => 'Instance URL',
+		'instance_url_help' => 'Base URL of your kill-the-news instance, e.g. https://news.example.com',
+		'api_token' => 'API token',
+		'api_token_help' => 'The admin password of your instance, used as a Bearer token.',
+		'verify_tls' => 'Verify TLS certificate',
+		'test_button' => 'Test connection',
+		'test_ok' => 'Connection successful.',
+		'test_failed' => 'Connection failed: %s',
+		'not_configured' => 'Configure your kill-the-news instance in the extension settings first.',
+		'panel_title' => 'Receive a newsletter by email',
+		'panel_help' => 'Create a dedicated address; emails sent to it appear as a feed.',
+		'name_label' => 'Newsletter name',
+		'name_placeholder' => 'e.g. Daily Tech Digest',
+		'create_button' => 'Create newsletter',
+		'creating' => 'Creating…',
+		'created_intro' => 'Subscribe to the newsletter with this address:',
+		'copy_button' => 'Copy',
+		'copied' => 'Copied!',
+		'open_feed' => 'Open feed',
+		'existing_title' => 'Your newsletter addresses',
+		'error_generic' => 'Something went wrong. Please try again.',
+		'error_csrf' => 'Invalid or expired session. Reload the page and try again.',
+		'error_title_required' => 'Please enter a newsletter name.',
+	),
+);

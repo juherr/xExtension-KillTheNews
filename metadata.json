@@ -1,0 +1,8 @@
+{
+	"name": "KillTheNews",
+	"author": "Julien Herr",
+	"description": "Subscribe to email newsletters as RSS feeds via a kill-the-news instance.",
+	"version": "0.1.0",
+	"entrypoint": "KillTheNews",
+	"type": "user"
+}
