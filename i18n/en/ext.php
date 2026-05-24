@@ -8,6 +8,7 @@ return array(
 		'api_token' => 'API token',
 		'api_token_help' => 'The admin password of your instance, used as a Bearer token.',
 		'verify_tls' => 'Verify TLS certificate',
+		'verify_tls_help' => 'Disable only for local development or self-signed certificates you trust.',
 		'test_button' => 'Test connection',
 		'test_ok' => 'Connection successful.',
 		'test_failed' => 'Connection failed: %s',

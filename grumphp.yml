@@ -1,0 +1,4 @@
+grumphp:
+  tasks:
+    composer_script:
+      script: check

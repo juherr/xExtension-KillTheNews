@@ -39,7 +39,7 @@
 	word-break: break-all;
 }
 .ktn-error {
-	color: #b00020;
+	color: var(--error-color, #b00020);
 	margin-top: 0.5rem;
 }
 .ktn-existing {

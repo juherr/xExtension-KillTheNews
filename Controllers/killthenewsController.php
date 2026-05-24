@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 final class FreshExtension_killthenews_Controller extends Minz_ActionController {

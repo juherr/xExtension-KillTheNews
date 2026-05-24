@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
@@ -16,9 +17,7 @@ final class KillTheNewsClientTest extends TestCase {
 		KillTheNewsClient::normalizeBaseUrl('not a url');
 	}
 
-	/**
-	 * @dataProvider invalidSchemeProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('invalidSchemeProvider')]
 	public function testNormalizeBaseUrlRejectsUnsupportedSchemes(string $url): void {
 		$this->expectException(KillTheNewsException::class);
 		KillTheNewsClient::normalizeBaseUrl($url);
@@ -158,7 +157,8 @@ final class KillTheNewsClientTest extends TestCase {
 	}
 
 	public function testCreateFeedSendsPostWithAuthAndParsesResult(): void {
-		$captured = [];
+		/** @var array{method:string,url:string,headers:array<string,string>,body:string|null} $captured */
+		$captured = ['method' => '', 'url' => '', 'headers' => [], 'body' => null];
 		$transport = function (string $method, string $url, array $headers, ?string $body) use (&$captured): array {
 			$captured = ['method' => $method, 'url' => $url, 'headers' => $headers, 'body' => $body];
 			return [
@@ -179,7 +179,8 @@ final class KillTheNewsClientTest extends TestCase {
 		self::assertSame('https://news.example.com/api/v1/feeds', $captured['url']);
 		self::assertSame('Bearer secret-token', $captured['headers']['Authorization']);
 		self::assertSame('application/json', $captured['headers']['Content-Type']);
-		self::assertSame(['title' => 'My News'], json_decode((string) $captured['body'], true));
+		self::assertIsString($captured['body']);
+		self::assertSame(['title' => 'My News'], json_decode($captured['body'], true));
 		self::assertSame('happy.otter.1234@news.example.com', $feed['emailAddress']);
 		self::assertSame('https://news.example.com/atom/happy-otter-1234', $feed['feedUrl']);
 	}
@@ -194,17 +195,25 @@ final class KillTheNewsClientTest extends TestCase {
 	}
 
 	public function testCreateFeedThrowsWhenTitleIsEmpty(): void {
-		$transport = fn (string $m, string $u, array $h, ?string $b): array
-			=> throw new RuntimeException('transport should not be called');
+		$transportCalled = false;
+		$transport = function (string $method, string $url, array $headers, ?string $body) use (&$transportCalled): array {
+			$transportCalled = true;
+			return ['status' => 500, 'body' => ''];
+		};
 		$client = new KillTheNewsClient('https://news.example.com', 'secret-token', $transport);
-		$this->expectException(KillTheNewsException::class);
-		$this->expectExceptionMessage('Newsletter title is required');
-		$client->createFeed('   ');
+		try {
+			$client->createFeed('   ');
+			self::fail('Expected KillTheNewsException');
+		} catch (KillTheNewsException $e) {
+			self::assertSame('Newsletter title is required', $e->getMessage());
+			self::assertFalse($transportCalled);
+		}
 	}
 
 	public function testCreateFeedPropagatesTransportFailure(): void {
-		$transport = fn (string $m, string $u, array $h, ?string $b): array
-			=> throw new KillTheNewsException('Connection error: boom');
+		$transport = function (string $method, string $url, array $headers, ?string $body): array {
+			throw new KillTheNewsException('Connection error: boom');
+		};
 		$client = new KillTheNewsClient('https://news.example.com', 'secret-token', $transport);
 		$this->expectException(KillTheNewsException::class);
 		$this->expectExceptionMessage('Connection error: boom');
@@ -212,7 +221,8 @@ final class KillTheNewsClientTest extends TestCase {
 	}
 
 	public function testListFeedsSendsGetWithAuthAndParses(): void {
-		$captured = [];
+		/** @var array{method:string,url:string,headers:array<string,string>} $captured */
+		$captured = ['method' => '', 'url' => '', 'headers' => []];
 		$transport = function (string $method, string $url, array $headers, ?string $body) use (&$captured): array {
 			$captured = ['method' => $method, 'url' => $url, 'headers' => $headers];
 			return [

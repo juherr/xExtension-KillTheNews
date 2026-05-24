@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 final class KillTheNewsException extends RuntimeException {
@@ -23,14 +24,27 @@ final class KillTheNewsClient {
 	}
 
 	public static function withCurl(string $instanceUrl, string $apiToken, bool $verifyTls = true): self {
+		/**
+		 * @param array<string,string> $headers
+		 * @return array{status:int,body:string}
+		 */
 		$transport = static function (string $method, string $url, array $headers, ?string $body) use ($verifyTls): array {
+			if ($url === '' || $method === '') {
+				throw new KillTheNewsException('Invalid HTTP request');
+			}
 			$ch = curl_init();
 			if ($ch === false) {
 				throw new KillTheNewsException('Unable to initialize HTTP client');
 			}
 			$headerLines = [];
 			foreach ($headers as $name => $value) {
+				if (!is_string($name) || !is_string($value) || $name === '') {
+					throw new KillTheNewsException('Invalid HTTP request headers');
+				}
 				$headerLines[] = $name . ': ' . $value;
+			}
+			if ($headerLines === []) {
+				throw new KillTheNewsException('Invalid HTTP request headers');
 			}
 			curl_setopt_array($ch, [
 				CURLOPT_URL => $url,
@@ -78,9 +92,10 @@ final class KillTheNewsClient {
 		if (filter_var($url, FILTER_VALIDATE_URL) === false) {
 			throw new KillTheNewsException('Invalid kill-the-news instance URL');
 		}
-		$parts = parse_url($url);
-		$scheme = is_array($parts) && isset($parts['scheme']) && is_string($parts['scheme']) ? strtolower($parts['scheme']) : '';
-		$host = is_array($parts) && isset($parts['host']) && is_string($parts['host']) ? $parts['host'] : '';
+		$scheme = parse_url($url, PHP_URL_SCHEME);
+		$host = parse_url($url, PHP_URL_HOST);
+		$scheme = is_string($scheme) ? strtolower($scheme) : '';
+		$host = is_string($host) ? $host : '';
 		if (($scheme !== 'http' && $scheme !== 'https') || $host === '') {
 			throw new KillTheNewsException('Invalid kill-the-news instance URL');
 		}
@@ -99,6 +114,7 @@ final class KillTheNewsClient {
 		if (!is_array($data)) {
 			throw new KillTheNewsException('Invalid JSON response from kill-the-news');
 		}
+		/** @var array<string,mixed> $data */
 		return self::mapFeed($data);
 	}
 
@@ -118,6 +134,7 @@ final class KillTheNewsClient {
 					self::logMalformedFeedEntry('entry is not an object');
 					continue;
 				}
+				/** @var array<string,mixed> $raw */
 				$feeds[] = self::mapFeed($raw);
 			} catch (KillTheNewsException $e) {
 				self::logMalformedFeedEntry($e->getMessage());

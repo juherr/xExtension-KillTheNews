@@ -8,6 +8,7 @@ return array(
 		'api_token' => 'Jeton d’API',
 		'api_token_help' => 'Le mot de passe administrateur de votre instance, utilisé comme jeton Bearer.',
 		'verify_tls' => 'Vérifier le certificat TLS',
+		'verify_tls_help' => 'À désactiver uniquement en développement local ou avec un certificat auto-signé de confiance.',
 		'test_button' => 'Tester la connexion',
 		'test_ok' => 'Connexion réussie.',
 		'test_failed' => 'Échec de la connexion : %s',

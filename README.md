@@ -32,8 +32,9 @@ email* panel appears at the top:
 
 1. Enter a name and click **Create newsletter**.
 2. Copy the generated email address and use it to subscribe to the newsletter.
-3. FreshRSS is automatically subscribed to the matching RSS feed, in a
-   `Newsletters` category. New emails show up as articles.
+3. FreshRSS is automatically subscribed to the matching feed, in the localized
+   extension category (`Newsletters` in English, `Lettres d’information` in
+   French). New emails show up as articles.
 
 Newsletter management (rename, delete, sender rules) lives in the kill-the-news
 admin dashboard.
@@ -56,3 +57,35 @@ The API client (`KillTheNewsClient`) is framework-free and unit-tested:
 composer install
 composer test
 ```
+
+Run the full local quality gate with:
+
+```sh
+composer check
+```
+
+Use `composer cs:fix` to apply source formatting fixes. GrumPHP is configured
+to run `composer check` as a Git pre-commit hook after dependencies are
+installed.
+
+## Release
+
+Releases are automated by GitHub Actions from version tags.
+
+1. Update `metadata.json` and `CHANGELOG.md`.
+2. Run `composer update` when dependency constraints changed, then commit
+   `composer.lock` with the dependency changes.
+3. Run `composer check`.
+4. Create and push a tag matching the metadata version:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The release workflow validates that the tag matches `metadata.json`, builds a
+`KillTheNews/` plugin ZIP, and publishes it as a GitHub release asset. It can
+also be run manually from **Actions -> Release** with an existing tag.
+
+`composer.lock` is intentionally versioned so CI, Dependabot, and local hooks
+run the same toolchain versions.

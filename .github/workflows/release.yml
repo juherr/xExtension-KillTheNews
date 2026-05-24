@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release, for example v0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2 # v6
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Validate tag matches metadata version
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="$(php -r 'echo json_decode(file_get_contents("metadata.json"), true)["version"];')"
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "Tag $TAG does not match metadata.json version v$VERSION" >&2
+            exit 1
+          fi
+
+      - name: Build release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          ARCHIVE="xExtension-KillTheNews-${TAG}.zip"
+          mkdir -p build/KillTheNews
+          cp -R Controllers i18n static views build/KillTheNews/
+          cp KillTheNewsClient.php configure.phtml extension.php metadata.json README.md CHANGELOG.md build/KillTheNews/
+          (cd build && zip -r "$ARCHIVE" KillTheNews)
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@b430933 # v3
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: build/xExtension-KillTheNews-${{ github.event.inputs.tag || github.ref_name }}.zip
+          generate_release_notes: true

@@ -1,6 +1,7 @@
 {
 	"name": "juherr/xextension-killthenews",
 	"description": "FreshRSS extension to read email newsletters as feeds via a kill-the-news instance.",
+	"homepage": "https://github.com/juherr/xExtension-KillTheNews",
 	"type": "library",
 	"license": "AGPL-3.0-or-later",
 	"keywords": ["freshrss", "freshrss-extension", "rss", "newsletter", "kill-the-news"],
@@ -10,9 +11,28 @@
 		"ext-json": "*"
 	},
 	"require-dev": {
-		"phpunit/phpunit": "^10"
+		"friendsofphp/php-cs-fixer": "^3.75",
+		"phpro/grumphp": "^2.12",
+		"phpstan/phpstan": "^2",
+		"vimeo/psalm": "^6.0",
+		"phpunit/phpunit": "^12"
+	},
+	"config": {
+		"allow-plugins": {
+			"phpro/grumphp": true
+		}
 	},
 	"scripts": {
-		"test": "phpunit --bootstrap tests/bootstrap.php tests"
+		"lint": "find . -name '*.php' -not -path './vendor/*' -not -path './.git/*' -not -path './.claude/*' -print0 | xargs -0 -n1 php -l",
+		"cs:check": "php-cs-fixer fix --dry-run --diff",
+		"cs:fix": "php-cs-fixer fix",
+		"analyse": "phpstan analyse --level=max KillTheNewsClient.php tests && psalm --no-cache",
+		"test": "phpunit --bootstrap tests/bootstrap.php tests",
+		"check": [
+			"@lint",
+			"@cs:check",
+			"@analyse",
+			"@test"
+		]
 	}
 }
