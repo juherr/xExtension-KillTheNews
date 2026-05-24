@@ -2,9 +2,6 @@
 declare(strict_types=1);
 
 final class FreshExtension_killthenews_Controller extends Minz_ActionController {
-
-	private const CATEGORY_NAME = 'Newsletters';
-
 	#[\Override]
 	public function firstAction(): void {
 		if (!FreshRSS_Auth::hasAccess()) {
@@ -48,7 +45,7 @@ final class FreshExtension_killthenews_Controller extends Minz_ActionController 
 		}
 
 		try {
-			FreshRSS_feed_Controller::addFeed($feed['rssUrl'], $title, 0, self::CATEGORY_NAME);
+			FreshRSS_feed_Controller::addFeed($feed['feedUrl'], $title, 0, _t('ext.kill_the_news.category_name'));
 		} catch (FreshRSS_AlreadySubscribed_Exception $e) {
 			// Feed already present in FreshRSS: still return the address, it is valid.
 		} catch (\Throwable $e) {
@@ -56,14 +53,14 @@ final class FreshExtension_killthenews_Controller extends Minz_ActionController 
 			$this->view->ktnResponse = [
 				'error' => $e->getMessage(),
 				'emailAddress' => $feed['emailAddress'],
-				'rssUrl' => $feed['rssUrl'],
+				'feedUrl' => $feed['feedUrl'],
 			];
 			return;
 		}
 
 		$this->view->ktnResponse = [
 			'emailAddress' => $feed['emailAddress'],
-			'rssUrl' => $feed['rssUrl'],
+			'feedUrl' => $feed['feedUrl'],
 			'title' => $feed['title'],
 		];
 	}
@@ -95,7 +92,7 @@ final class FreshExtension_killthenews_Controller extends Minz_ActionController 
 		$this->view->ktnResponse = ['feeds' => array_map(static fn (array $f): array => [
 			'title' => $f['title'],
 			'emailAddress' => $f['emailAddress'],
-			'rssUrl' => $f['rssUrl'],
+			'feedUrl' => $f['feedUrl'],
 		], $feeds)];
 	}
 }

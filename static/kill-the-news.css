@@ -18,6 +18,10 @@
 	flex-wrap: wrap;
 	align-items: center;
 }
+.ktn-label {
+	flex: 1 0 100%;
+	font-weight: bold;
+}
 .ktn-row input[type="text"] {
 	flex: 1 1 16rem;
 }

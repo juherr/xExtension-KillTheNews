@@ -12,6 +12,7 @@ return array(
 		'test_ok' => 'Connexion réussie.',
 		'test_failed' => 'Échec de la connexion : %s',
 		'not_configured' => 'Configurez d’abord votre instance kill-the-news dans les réglages de l’extension.',
+		'category_name' => 'Lettres d’information',
 		'panel_title' => 'Recevoir une newsletter par email',
 		'panel_help' => 'Créez une adresse dédiée ; les emails reçus apparaissent comme un flux.',
 		'name_label' => 'Nom de la newsletter',
@@ -25,6 +26,7 @@ return array(
 		'existing_title' => 'Vos adresses de newsletters',
 		'error_generic' => 'Une erreur est survenue. Veuillez réessayer.',
 		'error_csrf' => 'Session invalide ou expirée. Rechargez la page et réessayez.',
+		'error_invalid_instance_url' => 'Veuillez saisir une URL d’instance HTTP ou HTTPS valide.',
 		'error_title_required' => 'Veuillez saisir un nom de newsletter.',
 	),
 );

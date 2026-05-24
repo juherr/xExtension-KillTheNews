@@ -11,6 +11,26 @@ final class KillTheNewsClientTest extends TestCase {
 		self::assertSame('', KillTheNewsClient::normalizeBaseUrl('   '));
 	}
 
+	public function testNormalizeBaseUrlRejectsInvalidUrl(): void {
+		$this->expectException(KillTheNewsException::class);
+		KillTheNewsClient::normalizeBaseUrl('not a url');
+	}
+
+	/**
+	 * @dataProvider invalidSchemeProvider
+	 */
+	public function testNormalizeBaseUrlRejectsUnsupportedSchemes(string $url): void {
+		$this->expectException(KillTheNewsException::class);
+		KillTheNewsClient::normalizeBaseUrl($url);
+	}
+
+	/** @return iterable<string,array{string}> */
+	public static function invalidSchemeProvider(): iterable {
+		yield 'ftp' => ['ftp://news.example.com'];
+		yield 'javascript' => ['javascript://alert'];
+		yield 'host missing' => ['https:///feeds'];
+	}
+
 	public function testBuildApiUrlJoinsBaseAndPath(): void {
 		self::assertSame(
 			'https://news.example.com/api/v1/feeds',
@@ -45,6 +65,19 @@ final class KillTheNewsClientTest extends TestCase {
 		self::assertSame('happy.otter.1234@news.example.com', $feed['emailAddress']);
 		self::assertSame('https://news.example.com/rss/happy-otter-1234', $feed['rssUrl']);
 		self::assertSame('https://news.example.com/atom/happy-otter-1234', $feed['atomUrl']);
+		self::assertSame('https://news.example.com/atom/happy-otter-1234', $feed['feedUrl']);
+	}
+
+	public function testParseFeedFallsBackToRssWhenAtomIsMissing(): void {
+		$body = json_encode([
+			'id' => 'happy-otter-1234',
+			'title' => 'My News',
+			'emailAddress' => 'happy.otter.1234@news.example.com',
+			'rssUrl' => 'https://news.example.com/rss/happy-otter-1234',
+		]);
+		$feed = KillTheNewsClient::parseFeed((string) $body);
+		self::assertSame('', $feed['atomUrl']);
+		self::assertSame('https://news.example.com/rss/happy-otter-1234', $feed['feedUrl']);
 	}
 
 	public function testParseFeedThrowsOnInvalidJson(): void {
@@ -55,6 +88,22 @@ final class KillTheNewsClientTest extends TestCase {
 	public function testParseFeedThrowsWhenEmailMissing(): void {
 		$this->expectException(KillTheNewsException::class);
 		KillTheNewsClient::parseFeed((string) json_encode(['id' => 'x', 'rssUrl' => 'https://y']));
+	}
+
+	public function testParseFeedUsesAtomWhenRssUrlIsMissing(): void {
+		$body = json_encode([
+			'id' => 'x',
+			'emailAddress' => 'x@example.com',
+			'atomUrl' => 'https://example.com/atom/x',
+		]);
+		$feed = KillTheNewsClient::parseFeed((string) $body);
+		self::assertSame('', $feed['rssUrl']);
+		self::assertSame('https://example.com/atom/x', $feed['feedUrl']);
+	}
+
+	public function testParseFeedThrowsWhenBothFeedUrlsAreMissing(): void {
+		$this->expectException(KillTheNewsException::class);
+		KillTheNewsClient::parseFeed((string) json_encode(['id' => 'x', 'emailAddress' => 'x@example.com']));
 	}
 
 	public function testParseFeedListMapsEntries(): void {
@@ -77,6 +126,25 @@ final class KillTheNewsClientTest extends TestCase {
 
 	public function testParseFeedListReturnsEmptyArrayWhenNoFeeds(): void {
 		self::assertSame([], KillTheNewsClient::parseFeedList((string) json_encode(['feeds' => []])));
+	}
+
+	public function testParseFeedListSkipsMalformedEntries(): void {
+		$body = json_encode([
+			'feeds' => [
+				'not an array',
+				['id' => 'missing-fields'],
+				[
+					'id' => 'valid-1',
+					'title' => 'Valid',
+					'emailAddress' => 'valid.1@news.example.com',
+					'rssUrl' => 'https://news.example.com/rss/valid-1',
+					'atomUrl' => 'https://news.example.com/atom/valid-1',
+				],
+			],
+		]);
+		$feeds = KillTheNewsClient::parseFeedList((string) $body);
+		self::assertCount(1, $feeds);
+		self::assertSame('valid.1@news.example.com', $feeds[0]['emailAddress']);
 	}
 
 	public function testErrorMessageUsesErrorField(): void {
@@ -113,6 +181,7 @@ final class KillTheNewsClientTest extends TestCase {
 		self::assertSame('application/json', $captured['headers']['Content-Type']);
 		self::assertSame(['title' => 'My News'], json_decode((string) $captured['body'], true));
 		self::assertSame('happy.otter.1234@news.example.com', $feed['emailAddress']);
+		self::assertSame('https://news.example.com/atom/happy-otter-1234', $feed['feedUrl']);
 	}
 
 	public function testCreateFeedThrowsOnNon201(): void {
@@ -121,6 +190,24 @@ final class KillTheNewsClientTest extends TestCase {
 		$client = new KillTheNewsClient('https://news.example.com', 'bad', $transport);
 		$this->expectException(KillTheNewsException::class);
 		$this->expectExceptionMessage('Unauthorized');
+		$client->createFeed('My News');
+	}
+
+	public function testCreateFeedThrowsWhenTitleIsEmpty(): void {
+		$transport = fn (string $m, string $u, array $h, ?string $b): array
+			=> throw new RuntimeException('transport should not be called');
+		$client = new KillTheNewsClient('https://news.example.com', 'secret-token', $transport);
+		$this->expectException(KillTheNewsException::class);
+		$this->expectExceptionMessage('Newsletter title is required');
+		$client->createFeed('   ');
+	}
+
+	public function testCreateFeedPropagatesTransportFailure(): void {
+		$transport = fn (string $m, string $u, array $h, ?string $b): array
+			=> throw new KillTheNewsException('Connection error: boom');
+		$client = new KillTheNewsClient('https://news.example.com', 'secret-token', $transport);
+		$this->expectException(KillTheNewsException::class);
+		$this->expectExceptionMessage('Connection error: boom');
 		$client->createFeed('My News');
 	}
 

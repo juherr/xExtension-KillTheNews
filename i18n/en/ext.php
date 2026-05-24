@@ -12,6 +12,7 @@ return array(
 		'test_ok' => 'Connection successful.',
 		'test_failed' => 'Connection failed: %s',
 		'not_configured' => 'Configure your kill-the-news instance in the extension settings first.',
+		'category_name' => 'Newsletters',
 		'panel_title' => 'Receive a newsletter by email',
 		'panel_help' => 'Create a dedicated address; emails sent to it appear as a feed.',
 		'name_label' => 'Newsletter name',
@@ -25,6 +26,7 @@ return array(
 		'existing_title' => 'Your newsletter addresses',
 		'error_generic' => 'Something went wrong. Please try again.',
 		'error_csrf' => 'Invalid or expired session. Reload the page and try again.',
+		'error_invalid_instance_url' => 'Please enter a valid HTTP or HTTPS instance URL.',
 		'error_title_required' => 'Please enter a newsletter name.',
 	),
 );

@@ -3,6 +3,8 @@
 	"author": "Julien Herr",
 	"description": "Subscribe to email newsletters as RSS feeds via a kill-the-news instance.",
 	"version": "0.1.0",
+	"minFreshRSS": "1.21.0",
+	"homepage": "https://github.com/juherr/xExtension-KillTheNews",
 	"entrypoint": "KillTheNews",
 	"type": "user"
 }

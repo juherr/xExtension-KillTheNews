@@ -5,6 +5,8 @@ final class KillTheNewsException extends RuntimeException {
 }
 
 final class KillTheNewsClient {
+	private const FEEDS_PATH = '/api/v1/feeds';
+
 	/** @var callable(string,string,array<string,string>,?string):array{status:int,body:string} */
 	private $transport;
 
@@ -62,10 +64,27 @@ final class KillTheNewsClient {
 		if ($url === '') {
 			return '';
 		}
+		// Detect any explicit URI scheme so unsupported schemes are rejected
+		// instead of being treated as a bare hostname and prefixed with https://.
+		if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $url) && !preg_match('#^https?://#i', $url)) {
+			throw new KillTheNewsException('Invalid kill-the-news instance URL');
+		}
+		// Only http(s) URLs are accepted as-is; values without a scheme are
+		// considered hostnames and normalized to https:// by default.
 		if (!preg_match('#^https?://#i', $url)) {
 			$url = 'https://' . $url;
 		}
-		return rtrim($url, '/');
+		$url = rtrim($url, '/');
+		if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+			throw new KillTheNewsException('Invalid kill-the-news instance URL');
+		}
+		$parts = parse_url($url);
+		$scheme = is_array($parts) && isset($parts['scheme']) && is_string($parts['scheme']) ? strtolower($parts['scheme']) : '';
+		$host = is_array($parts) && isset($parts['host']) && is_string($parts['host']) ? $parts['host'] : '';
+		if (($scheme !== 'http' && $scheme !== 'https') || $host === '') {
+			throw new KillTheNewsException('Invalid kill-the-news instance URL');
+		}
+		return $url;
 	}
 
 	public static function buildApiUrl(string $baseUrl, string $path): string {
@@ -73,7 +92,7 @@ final class KillTheNewsClient {
 	}
 
 	/**
-	 * @return array{id:string,title:string,emailAddress:string,rssUrl:string,atomUrl:string}
+	 * @return array{id:string,title:string,emailAddress:string,rssUrl:string,atomUrl:string,feedUrl:string}
 	 */
 	public static function parseFeed(string $body): array {
 		$data = json_decode($body, true);
@@ -84,7 +103,7 @@ final class KillTheNewsClient {
 	}
 
 	/**
-	 * @return list<array{id:string,title:string,emailAddress:string,rssUrl:string,atomUrl:string}>
+	 * @return list<array{id:string,title:string,emailAddress:string,rssUrl:string,atomUrl:string,feedUrl:string}>
 	 */
 	public static function parseFeedList(string $body): array {
 		$data = json_decode($body, true);
@@ -94,8 +113,15 @@ final class KillTheNewsClient {
 		$feeds = [];
 		foreach ($data['feeds'] as $raw) {
 			// Skip malformed entries defensively; the newsletter list is best-effort display.
-			if (is_array($raw)) {
+			try {
+				if (!is_array($raw)) {
+					self::logMalformedFeedEntry('entry is not an object');
+					continue;
+				}
 				$feeds[] = self::mapFeed($raw);
+			} catch (KillTheNewsException $e) {
+				self::logMalformedFeedEntry($e->getMessage());
+				continue;
 			}
 		}
 		return $feeds;
@@ -110,10 +136,14 @@ final class KillTheNewsClient {
 	}
 
 	/**
-	 * @return array{id:string,title:string,emailAddress:string,rssUrl:string,atomUrl:string}
+	 * @return array{id:string,title:string,emailAddress:string,rssUrl:string,atomUrl:string,feedUrl:string}
 	 */
 	public function createFeed(string $title): array {
-		$url = self::buildApiUrl($this->instanceUrl, '/api/v1/feeds');
+		$title = trim($title);
+		if ($title === '') {
+			throw new KillTheNewsException('Newsletter title is required');
+		}
+		$url = self::buildApiUrl($this->instanceUrl, self::FEEDS_PATH);
 		$headers = $this->authHeaders();
 		$headers['Content-Type'] = 'application/json';
 		$body = json_encode(['title' => $title]);
@@ -128,10 +158,10 @@ final class KillTheNewsClient {
 	}
 
 	/**
-	 * @return list<array{id:string,title:string,emailAddress:string,rssUrl:string,atomUrl:string}>
+	 * @return list<array{id:string,title:string,emailAddress:string,rssUrl:string,atomUrl:string,feedUrl:string}>
 	 */
 	public function listFeeds(): array {
-		$url = self::buildApiUrl($this->instanceUrl, '/api/v1/feeds');
+		$url = self::buildApiUrl($this->instanceUrl, self::FEEDS_PATH);
 		$response = ($this->transport)('GET', $url, $this->authHeaders(), null);
 		if ($response['status'] !== 200) {
 			throw new KillTheNewsException(self::errorMessage($response['status'], $response['body']));
@@ -147,15 +177,20 @@ final class KillTheNewsClient {
 		];
 	}
 
+	private static function logMalformedFeedEntry(string $reason): void {
+		error_log('[KillTheNews] Skipping malformed feed entry from kill-the-news: ' . $reason);
+	}
+
 	/**
 	 * @param array<string,mixed> $raw
-	 * @return array{id:string,title:string,emailAddress:string,rssUrl:string,atomUrl:string}
+	 * @return array{id:string,title:string,emailAddress:string,rssUrl:string,atomUrl:string,feedUrl:string}
 	 */
 	private static function mapFeed(array $raw): array {
 		$id = isset($raw['id']) && is_string($raw['id']) ? $raw['id'] : '';
 		$email = isset($raw['emailAddress']) && is_string($raw['emailAddress']) ? $raw['emailAddress'] : '';
 		$rss = isset($raw['rssUrl']) && is_string($raw['rssUrl']) ? $raw['rssUrl'] : '';
-		if ($id === '' || $email === '' || $rss === '') {
+		$atom = isset($raw['atomUrl']) && is_string($raw['atomUrl']) ? $raw['atomUrl'] : '';
+		if ($id === '' || $email === '' || ($rss === '' && $atom === '')) {
 			throw new KillTheNewsException('Unexpected feed payload from kill-the-news');
 		}
 		return [
@@ -163,7 +198,8 @@ final class KillTheNewsClient {
 			'title' => isset($raw['title']) && is_string($raw['title']) ? $raw['title'] : '',
 			'emailAddress' => $email,
 			'rssUrl' => $rss,
-			'atomUrl' => isset($raw['atomUrl']) && is_string($raw['atomUrl']) ? $raw['atomUrl'] : '',
+			'atomUrl' => $atom,
+			'feedUrl' => $atom !== '' ? $atom : $rss,
 		];
 	}
 }

@@ -25,7 +25,7 @@
 		<label class="group-name" for="ktn_api_token"><?= _t('ext.kill_the_news.api_token') ?></label>
 		<div class="group-controls">
 			<input type="password" name="ktn_api_token" id="ktn_api_token" class="w100" autocomplete="off"
-				placeholder="<?= $this->apiToken !== '' ? '••••••••' : '' ?>" />
+				placeholder="<?= $this->hasApiToken ? '••••••••' : '' ?>" />
 			<p class="help"><?= _t('ext.kill_the_news.api_token_help') ?></p>
 		</div>
 	</div>

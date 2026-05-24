@@ -7,7 +7,7 @@ final class KillTheNewsExtension extends Minz_Extension {
 	public const ROUTE = 'killthenews';
 
 	public string $instanceUrl = '';
-	public string $apiToken = '';
+	public bool $hasApiToken = false;
 	public bool $verifyTls = true;
 	/** @var array{ok:bool,message:string}|null */
 	public ?array $testResult = null;
@@ -76,35 +76,42 @@ final class KillTheNewsExtension extends Minz_Extension {
 
 	#[\Override]
 	public function handleConfigureAction(): void {
-		parent::init();
-		$this->registerTranslates();
+		parent::handleConfigureAction();
 
 		if (Minz_Request::isPost()) {
-			$url = KillTheNewsClient::normalizeBaseUrl(Minz_Request::paramString('ktn_instance_url'));
-			$token = Minz_Request::paramString('ktn_api_token');
-			$verify = Minz_Request::paramBoolean('ktn_verify_tls');
-
-			$this->setUserConfigurationValue('instance_url', $url);
-			// Empty token field means "keep the current token" (the field is never pre-filled with the secret).
-			if ($token !== '') {
-				$this->setUserConfigurationValue('api_token', $token);
+			try {
+				$url = KillTheNewsClient::normalizeBaseUrl(Minz_Request::paramString('ktn_instance_url'));
+			} catch (KillTheNewsException $e) {
+				$url = null;
+				$this->testResult = ['ok' => false, 'message' => _t('ext.kill_the_news.error_invalid_instance_url')];
 			}
-			$this->setUserConfigurationValue('verify_tls', $verify);
-			FreshRSS_UserDAO::touch();
 
-			$effectiveToken = $token !== '' ? $token : $this->getApiToken();
-			if (Minz_Request::paramString('ktn_test') !== '' && $url !== '' && $effectiveToken !== '') {
-				try {
-					KillTheNewsClient::withCurl($url, $effectiveToken, $verify)->listFeeds();
-					$this->testResult = ['ok' => true, 'message' => _t('ext.kill_the_news.test_ok')];
-				} catch (\Throwable $e) {
-					$this->testResult = ['ok' => false, 'message' => _t('ext.kill_the_news.test_failed', $e->getMessage())];
+			if ($url !== null) {
+				$token = Minz_Request::paramString('ktn_api_token');
+				$verify = Minz_Request::paramBoolean('ktn_verify_tls');
+
+				$this->setUserConfigurationValue('instance_url', $url);
+				// Empty token field means "keep the current token" (the field is never pre-filled with the secret).
+				if ($token !== '') {
+					$this->setUserConfigurationValue('api_token', $token);
+				}
+				$this->setUserConfigurationValue('verify_tls', $verify);
+				FreshRSS_UserDAO::touch();
+
+				$effectiveToken = $token !== '' ? $token : $this->getApiToken();
+				if (Minz_Request::paramString('ktn_test') !== '' && $url !== '' && $effectiveToken !== '') {
+					try {
+						KillTheNewsClient::withCurl($url, $effectiveToken, $verify)->listFeeds();
+						$this->testResult = ['ok' => true, 'message' => _t('ext.kill_the_news.test_ok')];
+					} catch (\Throwable $e) {
+						$this->testResult = ['ok' => false, 'message' => _t('ext.kill_the_news.test_failed', $e->getMessage())];
+					}
 				}
 			}
 		}
 
 		$this->instanceUrl = $this->getInstanceUrl();
-		$this->apiToken = $this->getApiToken();
+		$this->hasApiToken = $this->getApiToken() !== '';
 		$this->verifyTls = $this->getVerifyTls();
 	}
 }

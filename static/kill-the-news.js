@@ -20,7 +20,8 @@
 			'<h2>' + esc(i18n.panel_title) + '</h2>' +
 			'<p class="ktn-help">' + esc(i18n.panel_help) + '</p>' +
 			'<div class="ktn-row">' +
-			'<input type="text" class="ktn-name" placeholder="' + esc(i18n.name_placeholder) + '" aria-label="' + esc(i18n.name_label) + '" />' +
+			'<label class="ktn-label" for="ktn-newsletter-name">' + esc(i18n.name_label) + '</label>' +
+			'<input type="text" id="ktn-newsletter-name" class="ktn-name" placeholder="' + esc(i18n.name_placeholder) + '" />' +
 			'<button type="button" class="btn btn-important ktn-create">' + esc(i18n.create_button) + '</button>' +
 			'</div>' +
 			'<div class="ktn-result ktn-hidden"></div>' +
@@ -34,6 +35,13 @@
 		var resultBox = panel.querySelector('.ktn-result');
 		var errorBox = panel.querySelector('.ktn-error');
 		var existingBox = panel.querySelector('.ktn-existing');
+
+		nameInput.addEventListener('keydown', function (e) {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				createBtn.click();
+			}
+		});
 
 		createBtn.addEventListener('click', function () {
 			var title = (nameInput.value || '').trim();
@@ -56,7 +64,7 @@
 					}
 				})
 				.catch(function () { showError(errorBox, i18n.error_generic); })
-				.then(function () {
+				.finally(function () {
 					createBtn.disabled = false;
 					createBtn.textContent = i18n.create_button;
 				});
@@ -88,12 +96,14 @@
 			'<p>' + esc(i18n.created_intro) + '</p>' +
 			'<span class="ktn-email"><code>' + esc(data.emailAddress) + '</code>' +
 			'<button type="button" class="btn ktn-copy">' + esc(i18n.copy_button) + '</button></span>' +
-			(data.rssUrl && /^https?:\/\//i.test(data.rssUrl) ? ' <a class="btn" target="_blank" rel="noreferrer" href="' + esc(data.rssUrl) + '">' + esc(i18n.open_feed) + '</a>' : '');
+			(data.feedUrl && /^https?:\/\//i.test(data.feedUrl) ? ' <a class="btn" target="_blank" rel="noreferrer" href="' + esc(data.feedUrl) + '">' + esc(i18n.open_feed) + '</a>' : '');
 		box.classList.remove('ktn-hidden');
 		var copyBtn = box.querySelector('.ktn-copy');
 		copyBtn.addEventListener('click', function () {
-			navigator.clipboard.writeText(data.emailAddress).then(function () {
+			copyText(data.emailAddress).then(function () {
 				copyBtn.textContent = i18n.copied;
+			}).catch(function () {
+				copyBtn.textContent = i18n.error_generic;
 			});
 		});
 	}
@@ -116,6 +126,32 @@
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: body.toString(),
 		}).then(function (r) { return r.json(); });
+	}
+
+	function copyText(text) {
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			return navigator.clipboard.writeText(text);
+		}
+		return new Promise(function (resolve, reject) {
+			var textarea = document.createElement('textarea');
+			textarea.value = text;
+			textarea.setAttribute('readonly', 'readonly');
+			textarea.style.position = 'fixed';
+			textarea.style.left = '-9999px';
+			document.body.appendChild(textarea);
+			textarea.select();
+			try {
+				if (document.execCommand('copy')) {
+					resolve();
+				} else {
+					reject(new Error('copy failed'));
+				}
+			} catch (e) {
+				reject(e);
+			} finally {
+				document.body.removeChild(textarea);
+			}
+		});
 	}
 
 	function esc(s) {
