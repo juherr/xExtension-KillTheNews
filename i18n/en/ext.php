@@ -28,6 +28,8 @@ return array(
 		'error_generic' => 'Something went wrong. Please try again.',
 		'error_csrf' => 'Invalid or expired session. Reload the page and try again.',
 		'error_invalid_instance_url' => 'Please enter a valid HTTP or HTTPS instance URL.',
+		'error_subscription_failed' => 'The newsletter address was created, but FreshRSS could not subscribe to the feed automatically.',
 		'error_title_required' => 'Please enter a newsletter name.',
+		'error_upstream' => 'Could not reach the kill-the-news instance. Check the extension settings and try again.',
 	),
 );

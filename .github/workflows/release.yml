@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,6 +23,37 @@ jobs:
         uses: actions/checkout@de0fac2 # v6
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@7c071df # v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Validate Composer metadata
+        run: composer validate --strict
+
+      - name: Run checks
+        run: composer check
+
+  release:
+    needs: check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2 # v6
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@7c071df # v2
+        with:
+          php-version: '8.3'
+          coverage: none
 
       - name: Validate tag matches metadata version
         shell: bash
@@ -43,12 +74,15 @@ jobs:
           ARCHIVE="xExtension-KillTheNews-${TAG}.zip"
           mkdir -p build/KillTheNews
           cp -R Controllers i18n static views build/KillTheNews/
-          cp KillTheNewsClient.php configure.phtml extension.php metadata.json README.md CHANGELOG.md build/KillTheNews/
+          cp KillTheNewsClient.php configure.phtml extension.php metadata.json README.md CHANGELOG.md LICENSE build/KillTheNews/
           (cd build && zip -r "$ARCHIVE" KillTheNews)
+          (cd build && sha256sum "$ARCHIVE" > "$ARCHIVE.sha256")
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@b430933 # v3
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          files: build/xExtension-KillTheNews-${{ github.event.inputs.tag || github.ref_name }}.zip
+          files: |
+            build/xExtension-KillTheNews-${{ github.event.inputs.tag || github.ref_name }}.zip
+            build/xExtension-KillTheNews-${{ github.event.inputs.tag || github.ref_name }}.zip.sha256
           generate_release_notes: true

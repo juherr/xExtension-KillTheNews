@@ -71,8 +71,7 @@
 		});
 
 		function loadExisting() {
-			fetch(cfg.listUrl, { credentials: 'same-origin' })
-				.then(function (r) { return r.json(); })
+			postForm(cfg.listUrl, { _csrf: ctx.csrf })
 				.then(function (data) {
 					if (!data || !data.feeds || !data.feeds.length) {
 						existingBox.innerHTML = '';

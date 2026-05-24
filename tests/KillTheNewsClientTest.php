@@ -17,17 +17,20 @@ final class KillTheNewsClientTest extends TestCase {
 		KillTheNewsClient::normalizeBaseUrl('not a url');
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProvider('invalidSchemeProvider')]
-	public function testNormalizeBaseUrlRejectsUnsupportedSchemes(string $url): void {
+	#[\PHPUnit\Framework\Attributes\DataProvider('invalidBaseUrlProvider')]
+	public function testNormalizeBaseUrlRejectsUnsupportedBaseUrls(string $url): void {
 		$this->expectException(KillTheNewsException::class);
 		KillTheNewsClient::normalizeBaseUrl($url);
 	}
 
 	/** @return iterable<string,array{string}> */
-	public static function invalidSchemeProvider(): iterable {
+	public static function invalidBaseUrlProvider(): iterable {
 		yield 'ftp' => ['ftp://news.example.com'];
 		yield 'javascript' => ['javascript://alert'];
 		yield 'host missing' => ['https:///feeds'];
+		yield 'userinfo' => ['https://user:pass@news.example.com'];
+		yield 'query' => ['https://news.example.com?debug=1'];
+		yield 'fragment' => ['https://news.example.com#section'];
 	}
 
 	public function testBuildApiUrlJoinsBaseAndPath(): void {

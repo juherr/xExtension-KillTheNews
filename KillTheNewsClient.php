@@ -94,9 +94,13 @@ final class KillTheNewsClient {
 		}
 		$scheme = parse_url($url, PHP_URL_SCHEME);
 		$host = parse_url($url, PHP_URL_HOST);
+		$user = parse_url($url, PHP_URL_USER);
+		$pass = parse_url($url, PHP_URL_PASS);
+		$query = parse_url($url, PHP_URL_QUERY);
+		$fragment = parse_url($url, PHP_URL_FRAGMENT);
 		$scheme = is_string($scheme) ? strtolower($scheme) : '';
 		$host = is_string($host) ? $host : '';
-		if (($scheme !== 'http' && $scheme !== 'https') || $host === '') {
+		if (($scheme !== 'http' && $scheme !== 'https') || $host === '' || $user !== null || $pass !== null || $query !== null || $fragment !== null) {
 			throw new KillTheNewsException('Invalid kill-the-news instance URL');
 		}
 		return $url;

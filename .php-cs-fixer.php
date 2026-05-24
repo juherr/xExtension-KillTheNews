@@ -3,7 +3,8 @@
 $finder = PhpCsFixer\Finder::create()
 	->in(__DIR__)
 	->exclude(['.claude', '.git', 'vendor'])
-	->name('*.php');
+	->name('*.php')
+	->name('*.phtml');
 
 return (new PhpCsFixer\Config())
 	->setRiskyAllowed(false)

@@ -3,6 +3,15 @@
 declare(strict_types=1);
 
 final class FreshExtension_killthenews_Controller extends Minz_ActionController {
+	private function fail(int $status, string $message): void {
+		http_response_code($status);
+		$this->view->ktnResponse = ['error' => $message];
+	}
+
+	private function logFailure(string $context, \Throwable $e): void {
+		error_log('[KillTheNews] ' . $context . ': ' . $e->getMessage());
+	}
+
 	#[\Override]
 	public function firstAction(): void {
 		if (!FreshRSS_Auth::hasAccess()) {
@@ -21,27 +30,24 @@ final class FreshExtension_killthenews_Controller extends Minz_ActionController 
 	public function createAction(): void {
 		$ext = $this->extension();
 		if (!Minz_Request::isPost() || !FreshRSS_Auth::isCsrfOk()) {
-			http_response_code(403);
-			$this->view->ktnResponse = ['error' => _t('ext.kill_the_news.error_csrf')];
+			$this->fail(403, _t('ext.kill_the_news.error_csrf'));
 			return;
 		}
 		if ($ext === null || !$ext->isConfigured()) {
-			http_response_code(400);
-			$this->view->ktnResponse = ['error' => _t('ext.kill_the_news.not_configured')];
+			$this->fail(400, _t('ext.kill_the_news.not_configured'));
 			return;
 		}
 		$title = trim(Minz_Request::paramString('title'));
 		if ($title === '') {
-			http_response_code(400);
-			$this->view->ktnResponse = ['error' => _t('ext.kill_the_news.error_title_required')];
+			$this->fail(400, _t('ext.kill_the_news.error_title_required'));
 			return;
 		}
 
 		try {
 			$feed = $ext->buildClient()->createFeed($title);
 		} catch (KillTheNewsException $e) {
-			http_response_code(502);
-			$this->view->ktnResponse = ['error' => $e->getMessage()];
+			$this->logFailure('Feed creation failed', $e);
+			$this->fail(502, _t('ext.kill_the_news.error_upstream'));
 			return;
 		}
 
@@ -50,9 +56,10 @@ final class FreshExtension_killthenews_Controller extends Minz_ActionController 
 		} catch (FreshRSS_AlreadySubscribed_Exception $e) {
 			// Feed already present in FreshRSS: still return the address, it is valid.
 		} catch (\Throwable $e) {
+			$this->logFailure('FreshRSS subscription failed', $e);
 			http_response_code(502);
 			$this->view->ktnResponse = [
-				'error' => $e->getMessage(),
+				'error' => _t('ext.kill_the_news.error_subscription_failed'),
 				'emailAddress' => $feed['emailAddress'],
 				'feedUrl' => $feed['feedUrl'],
 			];
@@ -69,25 +76,24 @@ final class FreshExtension_killthenews_Controller extends Minz_ActionController 
 	/**
 	 * Read-only list of the user's newsletter addresses.
 	 *
-	 * Served over GET and gated by FreshRSS_Auth::hasAccess() (firstAction).
-	 * Known limitation: the response exposes the user's own newsletter email
-	 * addresses, so a cross-origin read would leak them ONLY if FreshRSS is
-	 * deployed with permissive CORS headers (the same-origin policy blocks
-	 * reading the JSON body otherwise). Default FreshRSS sends no such headers.
-	 * Harden with a CSRF / X-Requested-With check if a permissive CORS setup is used.
+	 * Served over POST with CSRF because the response exposes the user's own
+	 * newsletter email addresses.
 	 */
 	public function listAction(): void {
 		$ext = $this->extension();
+		if (!Minz_Request::isPost() || !FreshRSS_Auth::isCsrfOk()) {
+			$this->fail(403, _t('ext.kill_the_news.error_csrf'));
+			return;
+		}
 		if ($ext === null || !$ext->isConfigured()) {
-			http_response_code(400);
-			$this->view->ktnResponse = ['error' => _t('ext.kill_the_news.not_configured')];
+			$this->fail(400, _t('ext.kill_the_news.not_configured'));
 			return;
 		}
 		try {
 			$feeds = $ext->buildClient()->listFeeds();
 		} catch (KillTheNewsException $e) {
-			http_response_code(502);
-			$this->view->ktnResponse = ['error' => $e->getMessage()];
+			$this->logFailure('Feed listing failed', $e);
+			$this->fail(502, _t('ext.kill_the_news.error_upstream'));
 			return;
 		}
 		$this->view->ktnResponse = ['feeds' => array_map(static fn (array $f): array => [

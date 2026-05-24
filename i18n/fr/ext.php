@@ -28,6 +28,8 @@ return array(
 		'error_generic' => 'Une erreur est survenue. Veuillez réessayer.',
 		'error_csrf' => 'Session invalide ou expirée. Rechargez la page et réessayez.',
 		'error_invalid_instance_url' => 'Veuillez saisir une URL d’instance HTTP ou HTTPS valide.',
+		'error_subscription_failed' => 'L’adresse de newsletter a été créée, mais FreshRSS n’a pas pu s’abonner automatiquement au flux.',
 		'error_title_required' => 'Veuillez saisir un nom de newsletter.',
+		'error_upstream' => 'Impossible de joindre l’instance kill-the-news. Vérifiez les réglages de l’extension et réessayez.',
 	),
 );

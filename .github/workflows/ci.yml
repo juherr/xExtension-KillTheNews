@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  runtime-install:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,6 +16,23 @@ jobs:
         uses: shivammathur/setup-php@7c071df # v2
         with:
           php-version: '8.1'
+          extensions: curl, json
+          coverage: none
+
+      - name: Validate runtime dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress
+
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2 # v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@7c071df # v2
+        with:
+          php-version: '8.3'
           extensions: curl, json
           coverage: none
 

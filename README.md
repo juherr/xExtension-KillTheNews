@@ -43,15 +43,14 @@ admin dashboard.
 
 - Your kill-the-news API token stays server-side: it is stored in your FreshRSS
   user config and proxied through the extension. It is never sent to the browser.
-- The internal endpoint that lists your newsletter addresses is a read-only, login-gated
-  `GET`. Those addresses could only be read cross-origin if your FreshRSS install is
-  deployed with permissive CORS headers (the browser same-origin policy blocks it
-  otherwise, and default FreshRSS sends no such headers). If you run a permissive CORS
-  setup, consider adding a CSRF / `X-Requested-With` check to `listAction`.
+- The internal endpoint that lists your newsletter addresses is login-gated and
+  protected with FreshRSS CSRF validation, even though it only reads data.
 
 ## Development
 
-The API client (`KillTheNewsClient`) is framework-free and unit-tested:
+The API client (`KillTheNewsClient`) is framework-free and unit-tested. The
+extension runtime supports PHP 8.1+, while the development toolchain currently
+requires PHP 8.3+ because of PHPUnit, PHPStan, Psalm, and GrumPHP versions:
 
 ```sh
 composer install
@@ -83,9 +82,10 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The release workflow validates that the tag matches `metadata.json`, builds a
-`KillTheNews/` plugin ZIP, and publishes it as a GitHub release asset. It can
-also be run manually from **Actions -> Release** with an existing tag.
+The release workflow runs the full quality gate, validates that the tag matches
+`metadata.json`, builds a `KillTheNews/` plugin ZIP, writes a SHA-256 checksum,
+and publishes both files as GitHub release assets. It can also be run manually
+from **Actions -> Release** with an existing tag.
 
 `composer.lock` is intentionally versioned so CI, Dependabot, and local hooks
 run the same toolchain versions.
