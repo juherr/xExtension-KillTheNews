@@ -24,22 +24,26 @@
 		var form = urlField.closest('form') || urlField.parentNode;
 		var categoryField = form ? form.querySelector('#category, [name="category"]') : null;
 		var submitButton = form ? form.querySelector('.form-actions button[type="submit"], .form-actions button:not([type])') : null;
-		var urlGroup = closest(urlField, '.form-group');
 
 		addSourceOption(sourceField, i18n);
 		var fields = addSourceFields(sourceField, i18n);
 		var nameInput = fields.querySelector('.ktn-name');
 		var createBtn = fields.querySelector('.ktn-create');
 		var emailInput = fields.querySelector('.ktn-email-input');
-		var feedUrlInput = fields.querySelector('.ktn-feed-url-input');
-		var resultBox = fields.querySelector('.ktn-result');
 		var errorBox = fields.querySelector('.ktn-error');
 		var hidden = addHiddenFields(form);
 
 		sourceField.addEventListener('change', function () {
-			syncSourceState(sourceField, urlField, urlGroup, submitButton, hidden);
+			syncSourceState(sourceField, urlField, submitButton, hidden);
 		});
-		syncSourceState(sourceField, urlField, urlGroup, submitButton, hidden);
+		if (form) {
+			form.addEventListener('submit', function () {
+				if (isKtnSelected(sourceField) && hasGeneratedFeed(hidden, urlField)) {
+					urlField.disabled = false;
+				}
+			});
+		}
+		syncSourceState(sourceField, urlField, submitButton, hidden);
 
 		nameInput.addEventListener('keydown', function (e) {
 			if (e.key === 'Enter') {
@@ -50,8 +54,8 @@
 
 		createBtn.addEventListener('click', function () {
 			var title = (nameInput.value || '').trim();
+			var created = false;
 			hide(errorBox);
-			hide(resultBox);
 			if (!title) {
 				showError(errorBox, i18n.error_title_required || i18n.error_generic);
 				return;
@@ -62,17 +66,20 @@
 				.then(function (data) {
 					if (data && data.emailAddress && data.feedUrl) {
 						fillFreshRssForm(urlField, categoryField, i18n.category_name, data.feedUrl);
-						fillKtnFields(hidden, emailInput, feedUrlInput, i18n, data);
-						showResult(resultBox, i18n, data);
-						syncSourceState(sourceField, urlField, urlGroup, submitButton, hidden);
+						fillKtnFields(hidden, emailInput, i18n, data);
+						lockCreatedNewsletter(nameInput, createBtn, i18n, data);
+						syncSourceState(sourceField, urlField, submitButton, hidden);
+						created = true;
 					} else {
 						showError(errorBox, (data && data.error) || i18n.error_generic);
 					}
 				})
 				.catch(function () { showError(errorBox, i18n.error_generic); })
 				.finally(function () {
-					createBtn.disabled = false;
-					createBtn.textContent = i18n.create_button;
+					if (!created) {
+						createBtn.disabled = false;
+						createBtn.textContent = i18n.create_button;
+					}
 				});
 		});
 	}
@@ -142,11 +149,9 @@
 			'<input type="email" id="ktn-email-address" class="ktn-email-input long" readonly="readonly" />' +
 			'<button type="button" class="btn ktn-copy">' + esc(i18n.copy_button) + '</button>' +
 			'</div>' +
-			'<input type="url" class="ktn-feed-url-input long" readonly="readonly" aria-label="' + esc(i18n.feed_url_label) + '" />' +
 			'<p class="help">' + esc(i18n.created_help) + '</p>' +
 			'</div>' +
 			'</div>' +
-			'<div class="ktn-result ktn-hidden"></div>' +
 			'<div class="ktn-error ktn-hidden"></div>';
 		var advanced = closest(sourceField, 'details, fieldset');
 		if (advanced) {
@@ -178,24 +183,25 @@
 		return input;
 	}
 
-	function syncSourceState(sourceField, urlField, urlGroup, submitButton, hidden) {
+	function syncSourceState(sourceField, urlField, submitButton, hidden) {
 		var isKtn = isKtnSelected(sourceField);
-		var hasFeed = hidden.email.value !== '' && urlField.value !== '';
+		var hasFeed = hasGeneratedFeed(hidden, urlField);
 		var ktnSource = document.getElementById('ktn_source');
 		hidden.source.value = isKtn ? '1' : '';
-		urlField.readOnly = isKtn;
+		urlField.disabled = isKtn;
 		if (isKtn && !hasFeed) {
 			urlField.value = '';
 		}
 		if (ktnSource) {
 			ktnSource.style.display = isKtn ? 'block' : 'none';
 		}
-		if (urlGroup) {
-			urlGroup.classList.toggle('ktn-url-generated', isKtn);
-		}
 		if (submitButton) {
 			submitButton.disabled = isKtn && !hasFeed;
 		}
+	}
+
+	function hasGeneratedFeed(hidden, urlField) {
+		return hidden.email.value !== '' && urlField.value !== '';
 	}
 
 	function isKtnSelected(sourceField) {
@@ -203,12 +209,11 @@
 		return !!option && option.dataset.ktnSource === '1';
 	}
 
-	function fillKtnFields(hidden, emailInput, feedUrlInput, i18n, data) {
+	function fillKtnFields(hidden, emailInput, i18n, data) {
 		hidden.id.value = data.id || '';
 		hidden.email.value = data.emailAddress || '';
 		hidden.adminUrl.value = data.adminUrl || '';
 		emailInput.value = data.emailAddress || '';
-		feedUrlInput.value = data.feedUrl || '';
 		var created = closest(emailInput, '.ktn-created');
 		if (created) {
 			show(created);
@@ -217,6 +222,22 @@
 		if (copyBtn) {
 			setCopyHandler(copyBtn, data.emailAddress, i18n);
 		}
+	}
+
+	function lockCreatedNewsletter(nameInput, createBtn, i18n, data) {
+		nameInput.disabled = true;
+		if (!data.adminUrl || !/^https?:\/\//i.test(data.adminUrl)) {
+			createBtn.disabled = true;
+			createBtn.textContent = i18n.see_on_kill_the_news || i18n.manage_feed;
+			return;
+		}
+		var link = document.createElement('a');
+		link.className = createBtn.className;
+		link.textContent = i18n.see_on_kill_the_news || i18n.manage_feed;
+		link.href = data.adminUrl;
+		link.target = '_blank';
+		link.rel = 'noreferrer';
+		createBtn.parentNode.replaceChild(link, createBtn);
 	}
 
 	function fillFreshRssForm(urlField, categoryField, categoryName, feedUrl) {
@@ -236,13 +257,6 @@
 				return;
 			}
 		}
-	}
-
-	function showResult(box, i18n, data) {
-		box.innerHTML =
-			'<p>' + esc(i18n.created_intro) + '</p>' +
-			(data.adminUrl && /^https?:\/\//i.test(data.adminUrl) ? '<a class="btn" target="_blank" rel="noreferrer" href="' + esc(data.adminUrl) + '">' + esc(i18n.manage_feed) + '</a>' : '');
-		show(box);
 	}
 
 	function insertReadonlyEmail(urlField, i18n, feed) {
