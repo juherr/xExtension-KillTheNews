@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.1.2 - 2026-05-31
+
+### Fixed
+
+- Keep the kill-the-news feed URL field visible and locked after creation so users can still copy it.
+
 ## 0.1.1 - 2026-05-24
 
 ### Changed
