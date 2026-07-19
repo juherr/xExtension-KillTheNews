@@ -25,7 +25,7 @@ jobs:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@a919ff576a94b0fd7ec15f090dd9cf16b76c2c0b # v2
+        uses: shivammathur/setup-php@d64d1a1275bbfc1971370a3f04198b4ed7170e04 # v2
         with:
           php-version: '8.3'
           coverage: none
@@ -50,7 +50,7 @@ jobs:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@a919ff576a94b0fd7ec15f090dd9cf16b76c2c0b # v2
+        uses: shivammathur/setup-php@d64d1a1275bbfc1971370a3f04198b4ed7170e04 # v2
         with:
           php-version: '8.3'
           coverage: none
