@@ -79,7 +79,7 @@ jobs:
           (cd build && sha256sum "$ARCHIVE" > "$ARCHIVE.sha256")
 
       - name: Publish GitHub release
-        uses: softprops/action-gh-release@403a5240f3837fa857f642062e05aad6bb3391ca # v3
+        uses: softprops/action-gh-release@e5ee6bc58a36b838b92fc1217f2e4b414b5abcc8 # v3
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           files: |
