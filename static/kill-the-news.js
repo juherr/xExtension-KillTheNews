@@ -2,12 +2,17 @@
 
 (function () {
 	var RSS_SOURCE_VALUE = '0';
+	var initialized = false;
 
 	function init() {
+		if (initialized || document.readyState === 'loading') {
+			return;
+		}
 		var ctx = window.context;
 		if (!ctx || !ctx.extensions || !ctx.extensions.killthenews) {
 			return;
 		}
+		initialized = true;
 		var cfg = ctx.extensions.killthenews;
 		var i18n = cfg.i18n || {};
 
@@ -360,6 +365,7 @@
 		return String(s == null ? '' : s).trim().toLocaleLowerCase();
 	}
 
+	document.addEventListener('freshrss:globalContextLoaded', init);
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', init);
 	} else {

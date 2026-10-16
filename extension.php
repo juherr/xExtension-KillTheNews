@@ -22,7 +22,7 @@ final class KillTheNewsExtension extends Minz_Extension {
 
 		if ($this->isConfigured()) {
 			Minz_View::appendStyle($this->getFileUrl('kill-the-news.css'));
-			// defer=true, async=false so window.context (set by main.js) is ready.
+			// main.js is async; the script waits for FreshRSS's context-ready event.
 			Minz_View::appendScript($this->getFileUrl('kill-the-news.js'), false, true, false);
 			$this->registerHook(Minz_HookType::JsVars, [$this, 'jsVars']);
 			$this->registerHook(Minz_HookType::FeedBeforeInsert, [$this, 'feedBeforeInsert']);
